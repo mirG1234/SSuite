@@ -2,7 +2,7 @@
 
 process FILTER_CONTIGS {
 
-    publishDir "results/filtered_assemblies", mode: 'copy'
+    publishDir "${params.outdir}/filtered_assemblies", mode: 'copy'
 
     input:
     tuple val(sample_id), path(assembly)
