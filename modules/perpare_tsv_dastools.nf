@@ -2,27 +2,40 @@
 
 process PREPARE_TSV_DASTOOLS {
 
-    // define container image
-	container "file://${params.apptainer_dir}/dastools.sif"
-	publishDir "results/dastools/tsv", mode: 'copy'
-    
+    container "file://${params.apptainer_dir}/dastools.sif"
+    publishDir "${params.outdir}/dastools/tsv", mode: 'copy'
+
     input:
-    tuple val(sample_id), path(bin_dir)
-	val binner_name
-    
+    tuple val(sample_id), path(binner_folders)
+    val binning_methods
+
     output:
-    tuple val(sample_id), path("${sample_id}_${binner_name}_contigs2bin.tsv"), emit: tsv
+    tuple val(sample_id), path("${sample_id}_*_contig2bin.tsv"), emit: tsv
 
     script:
     """
-	# 1. Peek inside bin directory to see if files end in .fa or .fasta
-    FIRST_FILE=\$(ls *.fa* | head -n 1)
-    EXT=\${FIRST_FILE##*.}
+    # Loop through each folder provided in the list
+    for dir in ${binner_folders}; do
+        if [ -d "\$dir" ]; then
 
-    # 2. Pass the dynamic extension to the helper script
-    Fasta_to_Contig2Bin.sh \
-        -i . \
-        -e \$EXT \
-        > ${sample_id}_${binner_name}_contig2bin.tsv
+            #  ^=^z^` Pure Bash Fix: Trim the front and back of the folder path cleanly
+            # 1. Strip everything up to the sample ID prefix (e.g. removes paths)
+            base_dir=\$(basename "\$dir")
+
+            # 2. Strip 'CHG2098_S292_' from the front
+            tmp=\${base_dir#${sample_id}_}
+
+            # 3. Strip '_standard_bins' from the back, leaving ONLY the binner name
+            binner_name=\${tmp%_standard_bins}
+
+            # 2. Run the helper script on this specific binner folder
+            # Since everything was standardized by our helper tool, the extension is always 'fa'
+            Fasta_to_Contig2Bin.sh \
+                -i "\$dir" \
+                -e fa \
+                > ${sample_id}_\${binner_name}_contig2bin.tsv
+
+        fi
+    done
     """
 }
