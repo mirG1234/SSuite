@@ -4,7 +4,7 @@ process METAPHLAN4 {
 
     //container "community.wave.seqera.io/library/metaphlan:4.1.1--7ee0a2cf07a38170"
     container "file://${params.apptainer_dir}/metaphlan4.sif"
-    publishDir "results/metaphlan4", mode: 'copy'
+    publishDir "${params.outdir}/metaphlan4", mode: 'copy'
 
     input:
     tuple val(sample_id), path(read1), path(read2)
