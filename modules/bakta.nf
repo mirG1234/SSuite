@@ -5,7 +5,7 @@ process BAKTA {
         // define container image
         // container: "oras://community.wave.seqera.io/library/bakta:1.11.4--733db51190e0baa3"
         container "file://${params.apptainer_dir}/bakta.sif"
-        publishDir "results/bakta", mode: 'copy'
+        publishDir "${params.outdir}/bakta", mode: 'copy'
 
         input:
         tuple val(sample_id), path(contigs)
