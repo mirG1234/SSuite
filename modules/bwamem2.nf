@@ -4,7 +4,7 @@ process BWAMEM2 {
 
     //container "community.wave.seqera.io/library/bwa-mem2_samtools:b7ce408fd27b2698"
     container "file://${params.apptainer_dir}/bwamem2.sif"
-    publishDir "results/bwa-mem2", mode: 'symlink'
+    publishDir "${params.outdir}/bwa-mem2", mode: 'symlink'
 
     input:
     tuple val(sample_id), path(read1), path(read2)
