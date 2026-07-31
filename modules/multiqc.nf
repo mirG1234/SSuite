@@ -4,7 +4,7 @@ process MULTIQC {
 
     //container "community.wave.seqera.io/library/pip_multiqc:ad8f247edb55897c"
     container "file://${params.apptainer_dir}/multiqc.sif"
-    publishDir "results/multiqc", mode: 'copy'
+    publishDir "${params.outdir}/multiqc", mode: 'copy'
 
     input:
     path all_files
