@@ -27,6 +27,7 @@ include { GENERATE_COVERAGE_METABINNER } from './modules/generate_coverage_metab
 include { GENERATE_KMERS_METABINNER } from './modules/generate_kmers_metabinner.nf'
 include { GENERATE_COVERAGE_CONCOCT } from './modules/generate_coverage_concoct.nf'
 include { CUTUP_CONCOCT } from './modules/cutup_concoct.nf'
+include { STANDARDIZE_BINS } from './modules/standardize_bins.nf'
 include { PREPARE_TSV_DASTOOLS } from './modules/prepare_tsv_dastools.nf'
 
 
@@ -34,11 +35,9 @@ include { PREPARE_TSV_DASTOOLS } from './modules/prepare_tsv_dastools.nf'
 
 workflow {
 
-
     /*
      * ASSEMBLY AND READS IMPORT
      */
-
 
     // Create ASSEMBLY input channel (format [sample_id, contigs])
     contigs_ch = Channel.fromPath(params.input_csv)
@@ -100,20 +99,28 @@ workflow {
      * BINNING
      */
 
+    // initialize empty list for binner results
+    // binner_outputs_ch = Channel.empty()
+    def active_binner_channels = []
+
     // run binning module
-    if (params.binning_method == 'comebin') {
+    if (params.binners.contains('comebin')) {
 
         // run binning on id-joined contigs and bams
         COMEBIN(contigs_cross_mapped_bams_ch)
-        bins_ch = COMEBIN.out.bins
+        active_binner_channels << COMEBIN.out.bins
 
-    } else if (params.binning_method == 'semibin'){
+    }
+
+    if (params.binners.contains('semibin')){
 
         // run binning on id-joined contigs and bams
-        SEMIBIN2(contigs_cross_mapped_bams_ch)
-        bins_ch = SEMIBIN2.out.bins
+        SEMIBIN(contigs_cross_mapped_bams_ch)
+        active_binner_channels << SEMIBIN.out.bins
 
-    } else if (params.binning_method == 'maxbin2'){
+    }
+
+    if (params.binners.contains('maxbin2')){
 
         // run abundance assembly
         // use bam files joined with sample_id
@@ -124,9 +131,11 @@ workflow {
 
         // run binning on id-tagged contigs w/ abundance files
         MAXBIN2(maxbin_input_ch)
-        bins_ch = MAXBIN2.out.bins
+        active_binner_channels << MAXBIN2.out.bins
 
-    } else if (params.binning_method == 'metabat2'){
+    }
+
+    if (params.binners.contains('metabat2')){
 
         // generate depth file using internal helper function
         // use sorted .bam files and reference fasta (contig catalog)
@@ -138,13 +147,15 @@ workflow {
 
         // run binning on id-tagged contigs with depth file from previous step
         METABAT2(metabat_input)
-        bins_ch = METABAT2.out.bins
+        active_binner_channels << METABAT2.out.bins
 
-    } else if (params.binning_method == 'metabinner'){
+    }
+
+    if (params.binners.contains('metabinner')){
 
         // use depth file from previous metabat2 module to calculate coverage
-         GENERATE_DEPTH_METABAT2(grouped_bams_ch)
-        depth_ch = GENERATE_DEPTH_METABAT2.out.depth
+        GENERATE_DEPTH_METABINNER(grouped_bams_ch)
+        depth_ch = GENERATE_DEPTH_METABINNER.out.depth
 
         // generate coverage file using internal helper function
         GENERATE_COVERAGE_METABINNER(depth_ch)
@@ -152,8 +163,8 @@ workflow {
 
         // generate kmer files (one per sample) using internal helper function
         // use contigs w/ additional length and threshold args (defined in params)
-        GENERATE_KMERS_METABINNER(contigs_ch, kmer_size, length_thresh)
-        kmer_ch = GENERATE_KMERS_METABINNER.out.coverage
+        GENERATE_KMERS_METABINNER(contigs_ch, params.kmer_size, params.length_thresh)
+        kmer_ch = GENERATE_KMERS_METABINNER.out.kmer
 
         // join sample ID'ed contigs channel to kmer and coverage channels for same sample
         metabinner_input = contigs_ch
@@ -162,38 +173,35 @@ workflow {
 
         // run binning on contigs + kmer + coverage files from previous steps
         METABINNER(metabinner_input)
-        bins_ch = METABINNER.out.bins
 
-    } else if (params.binning_method == 'binny'){
+        // take bin tsv output and parse into fasta files
+        PARSE_FASTA_METABINNER(contigs_ch.join(METABINNER.out.result_tsv))
 
-        // define channel targeting unifunc dir
-        unifunc_asset_ch = Channel.value(file("/project/6007957/users/greenm11/software/magSuite/UniFunc/unifunc"))
+        active_binner_channels << PARSE_FASTA_METABINNER.out.bins
 
-        // run assembly on clean reads
-        BINNY(contigs_cross_mapped_bams_ch, unifunc_asset_ch)
-        bins_ch = BINNY.out.bins
+    }
 
-    } else if (params.binning_method == 'concoct'){
+    if (params.binners.contains('concoct')){
 
         // Fragment the assemblies
         CUTUP_CONCOCT(contigs_ch)
 
         // Join fragmented BED with grouped BAMs to get coverage
-        coverage_input = CUTUP_CONCOCT.out.bed.join(grouped_bams_ch)
+        coverage_input = CUTUP_CONCOCT.out.cutup_bed.join(grouped_bams_ch)
         GENERATE_COVERAGE_CONCOCT(coverage_input)
 
         // join original contigs, cutup fasta and coverage for final binning
         concoct_final_input = contigs_ch
-            .join(CUTUP_CONCOCT.out.fasta)
+            .join(CUTUP_CONCOCT.out.cutup_fa)
             .join(GENERATE_COVERAGE_CONCOCT.out.coverage)
 
         CONCOCT(concoct_final_input)
-        bins_ch = CONCOCT.bins
+        active_binner_channels << CONCOCT.out.bins
 
-    } else {
-
-        error "invalid binning method"
     }
+
+    // Flatten the list and mix them
+    binner_outputs_ch = Channel.empty().mix( *active_binner_channels )
 
 
 // ========================================================================================================= //
@@ -202,10 +210,16 @@ workflow {
      * BIN REFINEMENT AND QC
      */
 
-    if(params.refine_bins){
+     if(params.refine_bins){
+
+        // Run standardization helper on whatever binners ran
+        STANDARDIZE_BINS(binner_outputs_ch)
+
+        // Group clean folders by sample ID
+        grouped_bins_ch = STANDARDIZE_BINS.out.bins.groupTuple(by: 0)
 
         // run DAStools helper module
-        PREPARE_TSV_DASTOOLS(bins_ch, params.binning_method)
+        PREPARE_TSV_DASTOOLS(grouped_bins_ch, params.binners)
         tsv_ch = PREPARE_TSV_DASTOOLS.out.tsv
 
         // join tsv and contigs channels by sample ID
@@ -215,11 +229,24 @@ workflow {
         DASTOOLS(contigs_tsv_ch)
         bins_ch = DASTOOLS.out.refined_bins
 
+         // Run CheckM2 on final DAS Tool consensus bins
+        CHECKM2_REFINED(bins_ch, Channel.value("refined"))
+
+        //  Run CheckM2 on your raw individual binner folders
+        CHECKM2_RAW(STANDARDIZE_BINS.out.bins, Channel.value("raw"))
+
+    } else {
+
+        // If refinement is skipped, standardize names
+        STANDARDIZE_BINS(binner_outputs_ch)
+
+        Fall back straight to the standardized raw bins
+        bins_ch = STANDARDIZE_BINS.out.bins
+
+        //  Run CheckM2 on your raw individual binner folders
+        CHECKM2_RAW(bins_ch, Channel.value("raw"))
+
     }
-
-    // run checkm2 for bin QC
-    CHECKM2(bins_ch)
-
 
 // ========================================================================================================= //
 
