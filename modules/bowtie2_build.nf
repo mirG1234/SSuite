@@ -5,7 +5,7 @@ process BOWTIE2_BUILD {
     // define container image
     //container "community.wave.seqera.io/library/bowtie2:2.5.4--d51920539234bea7"
     container "file://${params.apptainer_dir}/bowtie2.sif"
-    publishDir "results/bowtie2", mode: 'copy'
+    publishDir "${params.outdir}/bowtie2", mode: 'copy'
 
     input:
     tuple val(sample_id), path(contigs)
