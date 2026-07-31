@@ -5,7 +5,7 @@ process PROKKA {
         // define container image
         // container: "oras://community.wave.seqera.io/library/prokka:1.15.6--e5028fc3f228f99c"
         container "file://${params.apptainer_dir}/prokka.sif"
-        publishDir "results/prokka", mode: 'copy'
+        publishDir "${params.outdir}/prokka", mode: 'copy'
 
         input:
         tuple val(sample_id), path(contigs)
