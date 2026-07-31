@@ -5,16 +5,15 @@ process COMEBIN {
         // define container image
         // container "oras://community.wave.seqera.io/library/comebin:1.0.4--12fdcf0118ec044d"
         container "file://${params.apptainer_dir}/comebin.sif"
-        publishDir "results/comebin", mode: 'copy'
+        publishDir "${params.outdir}/comebin", mode: 'copy'
 
         input:
         tuple val(sample_id), path(bams), path(bais), path(contigs)
 
         output:
-        tuple val(sample_id), path("${sample_id}_comebin_bins/bins/${sample_id}.comebin.*.fa*"), emit: bins
-        path "comebin.log", emit: log
+        tuple val(sample_id), val("comebin"), path("${sample_id}_comebin_bins/comebin_res/comebin_res_bins/*.fa*"), emit: bins
 
-      script:
+        script:
         def out_dir = "${sample_id}_comebin_bins"
         def bin_dir = "${out_dir}/bins"
         """
@@ -33,8 +32,8 @@ process COMEBIN {
             -a "\${FASTA_ABS}" \
             -p "\${BAM_DIR_ABS}" \
             -o "\${OUT_DIR_ABS}" \
-            -t ${task.cpus} \
-              > "\${OUT_DIR_ABS}/comebin.log" 2>&1
+            -t ${task.cpus}
+             # > "\${OUT_DIR_ABS}/comebin.log" 2>&1
 
         """
 }
