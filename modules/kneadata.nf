@@ -4,7 +4,7 @@ process KNEADDATA {
 
     //container "community.wave.seqera.io/library/fastqc_kneaddata_trimmomatic:f596e5c86f298d72"
     container "file://${params.apptainer_dir}/kneadata.sif"
-    publishDir "results/kneaddata", mode: 'symlink'
+    publishDir "${params.outdir}/kneaddata", mode: 'symlink'
 
     input:
     tuple path(read1), path(read2)
