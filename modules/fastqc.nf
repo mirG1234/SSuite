@@ -4,7 +4,7 @@ process FASTQC {
 
     //container "community.wave.seqera.io/library/fastqc:0.12.1--af7a5314d5015c29"
     container "file://${params.apptainer_dir}/fastqc.sif"
-    publishDir "results/fastqc", mode: 'symlink'
+    publishDir "${params.outdir}/fastqc", mode: 'symlink'
 
     input:
     tuple val(sample_id), path(reads)
