@@ -4,7 +4,7 @@ process SAMTOOLS {
 
     //container "community.wave.seqera.io/library/bowtie2:2.5.4--d51920539234bea7"
     container "file://${params.apptainer_dir}/samtools.sif"
-    publishDir "results/samtools/sample_id", mode: 'copy'
+    publishDir "${params.outdir}/samtools/sample_id", mode: 'copy'
 
     // NOTE: SAMPLE_ID CORRESPONDS TO CONTIG/ASSEMBLY ID
     input:
