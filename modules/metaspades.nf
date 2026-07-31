@@ -4,7 +4,7 @@ process METASPADES {
 
         // define container image
         container "file://${params.apptainer_dir}/spades.sif"
-        publishDir "results/metaspades/${sample_id}", mode: 'copy'
+        publishDir "${params.outdir}/metaspades/${sample_id}", mode: 'copy'
 
         input:
         tuple val(sample_id), path(reads)
