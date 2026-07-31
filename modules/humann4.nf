@@ -4,7 +4,7 @@ process HUMANN4 {
 
     //container "sshekarriz/humann:4.0.0.a.1"
     container "file://${params.apptainer_dir}/humann4.sif"
-    publishDir "results/humann4", mode: 'copy'
+    publishDir "${params.outdir}/humann4", mode: 'copy'
 
     input:
     tuple val(sample_id), path(read1), path(read2), path(taxprofile)
