@@ -4,7 +4,7 @@ process MEGAHIT {
 
         // define container image
         container "file://${params.apptainer_dir}/megahit.sif"
-        publishDir "results/megahit", mode: 'copy'
+        publishDir "${params.outdir}/megahit", mode: 'copy'
 
         input:
         tuple val(sample_id), path(reads)
