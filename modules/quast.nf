@@ -5,7 +5,7 @@ process QUAST {
         // define container image
         //container "oras://community.wave.seqera.io/library/quast:5.3.0--bfd4c029fde7e696"
         container "file://${params.apptainer_dir}/quast.sif"
-        publishDir "results/quast", mode: 'copy'
+        publishDir "${params.outdir}/quast", mode: 'copy'
 
         input:
         tuple val(sample_id), path(contigs)
