@@ -15,16 +15,21 @@ include { BINNY } from './modules/binny.nf'
 include { METABAT2 } from './modules/metabat2.nf'
 include { METABINNER } from './modules/metabinner.nf'
 include { CONCOCT } from './modules/concoct.nf'
-include { CHECKM2 } from './modules/checkm2.nf'
+
+// bin QC and annotation
+include { CHECKM2 as CHECKM2_RAW } from './modules/checkm2.nf'
+include { CHECKM2 as CHECKM2_REFINED } from './modules/checkm2.nf'
 include { DASTOOLS } from './modules/dastools.nf'
 include { GTDBTK } from './modules/gtdbtk.nf'
 include { MULTIQC } from './modules/multiqc.nf'
 
 // binning helper modules)
 include { GENERATE_ABUND_MAXBIN2 } from './modules/generate_abund_maxbin2.nf'
-include { GENERATE_DEPTH_METABAT2 } from './modules/generate_depth_metabat2.nf'
+include { GENERATE_DEPTH_METABAT2 as GENERATE_DEPTH_METABAT2 } from './modules/generate_depth_metabat2.nf'
+include { GENERATE_DEPTH_METABAT2 as GENERATE_DEPTH_METABINNER } from './modules/generate_depth_metabat2.nf'
 include { GENERATE_COVERAGE_METABINNER } from './modules/generate_coverage_metabinner.nf'
 include { GENERATE_KMERS_METABINNER } from './modules/generate_kmers_metabinner.nf'
+include { PARSE_FASTA_METABINNER } from './modules/parse_fasta_metabinner.nf'
 include { GENERATE_COVERAGE_CONCOCT } from './modules/generate_coverage_concoct.nf'
 include { CUTUP_CONCOCT } from './modules/cutup_concoct.nf'
 include { STANDARDIZE_BINS } from './modules/standardize_bins.nf'
